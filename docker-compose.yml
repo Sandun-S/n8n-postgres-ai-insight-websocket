@@ -1,0 +1,35 @@
+# Qube Test-Bench Infrastructure Definition
+version: '3.8'
+
+services:
+  qube-db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: qube_timescale
+    environment:
+      - POSTGRES_PASSWORD=qube_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  qube-n8n:
+    image: n8nio/n8n:latest
+    container_name: qube_n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      - N8N_BLOCK_FS_WRITE_ACCESS=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # - ./knowledge_base:/home/node/knowledge_base:ro
+      - ./knowledge_base:/home/node/.n8n-files:ro
+    depends_on:
+      - qube-db
+
+volumes:
+  pgdata:
+  n8n_data:

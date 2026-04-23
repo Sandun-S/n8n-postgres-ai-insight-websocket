@@ -1,0 +1,39 @@
+QUBE INDUSTRIAL SYSTEM: ENERGY OPTIMIZATION KNOWLEDGE BASE v1.0
+
+[SECTION 1: GLOBAL ELECTRICAL STANDARDS]
+- Ideal Power Factor (PF): 0.95 to 1.00.
+- Marginal Power Factor (PF): 0.85 to 0.90. Requires tuning of capacitor banks.
+- Critical Power Factor (PF): Below 0.80. Results in kVA surcharges and overheating of conductors.
+- Maximum Demand Limit: Do not exceed 90% of Contract Demand (kVA) to avoid utility penalties.
+
+[SECTION 2: ASSET-SPECIFIC MAINTENANCE & SPECS]
+
+DEVICE: Electrical-WWTP (Water Treatment Plant)
+- Equipment: 3x 15kW Submersible Pumps.
+- Optimal PF: 0.92.
+- Failure Mode: PF below 0.50 usually indicates a stuck non-return valve causing motor "no-load" idling or faulty primary inductor coils.
+- Recommendation: Install 50kVAR Automatic Power Factor Correction (APFC) panel.
+- Maintenance: Inspect pump seals every 2,000 operational hours.
+
+DEVICE: Electrical-Air-Compressor
+- Equipment: Rotary Screw Compressor (Atlas Copco GA-series equivalent).
+- Optimal Usage: 7-bar pressure constant.
+- Peak Shaving: Sequence start-ups with 5-minute delays to avoid inrush current spikes above 100kVA.
+- Waste Alert: If consumption > 5kWh during non-production hours, check for pneumatic line leaks.
+
+DEVICE: Electrical-Boiler
+- Equipment: Industrial Steam Generator.
+- Optimal PF: 0.98 (Resistive heating).
+- Efficiency Logic: If Peak kVA exceeds 3x Average kWh, inspect heating element insulation.
+- Service Step: Descale heat exchanger every 6 months to maintain thermal efficiency.
+
+DEVICE: Electrical-Refrigeration
+- Equipment: Industrial Ammonia Chiller Plant.
+- Critical Limit: Peak Demand must not exceed 1200kVA.
+- Optimization: Shift defrost cycles to 10 PM - 6 AM window to reduce peak-hour kVA charges.
+- Maintenance: Inspect compressor oil levels monthly.
+
+[SECTION 3: REMEDIATION ACTIONS]
+- Capacitor Banks: Used to correct low Power Factor. Sizing = (kW) * [tan(acos(PF_current)) - tan(acos(PF_target))].
+- Peak Shaving: The process of reducing load during peak utility hours. Implementation: Install VFDs (Variable Frequency Drives) on 22kW+ motors.
+- Load Sequencing: Programming PLC logic to ensure high-drain assets (Chillers + Compressors) do not start simultaneously.

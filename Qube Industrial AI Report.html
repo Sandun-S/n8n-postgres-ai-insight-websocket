@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!-- saved from url=(0050)http://localhost:5678/webhook-test/energy-insights -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <title>Qube Industrial AI Report</title>
+  <style>
+    body { background-color: #f4f7f6; font-family: sans-serif; padding: 40px; }
+    .container { background-color: #ffffff; padding: 24px; border-radius: 12px; max-width: 850px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h1 { color: #ff6d5a; text-align: center; border-bottom: 3px solid #15171c; padding-bottom: 10px; }
+    .device-card { border-left: 8px solid #ff6d5a; background: #f9f9f9; padding: 20px; margin-bottom: 20px; border-radius: 4px; }
+    .device-header { font-weight: bold; color: #15171c; font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid #ddd; }
+    .insight-content { white-space: pre-wrap; font-size: 15px; color: #2c3e50; line-height: 1.6; }
+    footer { text-align: center; margin-top: 40px; font-size: 12px; color: #909399; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Qube System Optimization Report</h1>
+    <p style="text-align: center; color: #666;">Data Analysis: 2026-04-23 00:51</p>
+    
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-WWTP</div>
+        <div class="insight-content">Insight: The Electrical-WWTP's minimum power factor of 0.44 indicates a critical failure, wasting significant reactive power and necessitating immediate capacitor bank installation.
+
+Suggestions:
+Engineer should initiate an emergency capacitor bank installation project for the Electrical-WWTP.
+Engineer should investigate the cause of the extremely low power factor, potentially including malfunctioning equipment or undersized components.
+Engineer should review historical demand and consumption data to identify any potential for peak shaving opportunities once the power factor issue is resolved.</div>
+      </div>
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-Air-Compressor</div>
+        <div class="insight-content">Insight: The Electrical-Air-Compressor is operating efficiently with a minimum power factor above the industrial standard of 0.90, indicating minimal reactive power loss.
+
+Suggestions:
+* Engineer should monitor the peak demand in relation to average consumption for potential load balancing opportunities.
+* Engineer should ensure continuous telemetry for all Qube measurements to maintain comprehensive system oversight.
+* Engineer should investigate the feasibility of implementing a variable frequency drive (VFD) to further optimize energy consumption during non-peak operation.</div>
+      </div>
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-Production-Building</div>
+        <div class="insight-content">Insight: The Electrical-Production-Building is wasting Reactive Power as its minimum power factor is below the 0.90 industrial standard.
+Suggestions:
+- Engineer should investigate the cause of the low power factor and implement power factor correction, such as installing capacitor banks.
+- Engineer should analyze the ratio of peak demand to average consumption to determine if peak shaving or load sequencing is necessary.
+- Engineer should ensure all relevant telemetry, including Power Factor for the Utility Building, is configured in the Qube Modbus or OPC UA gateway for comprehensive analysis.</div>
+      </div>
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-Utility-Building</div>
+        <div class="insight-content">Insight: The Electrical-Utility-Building is experiencing significant peak demand relative to its average consumption, and telemetry for Power Factor is missing, preventing a full assessment of reactive power waste.
+Suggestions:
+* Engineer should investigate the large discrepancy between peak demand and average consumption at the Electrical-Utility-Building to identify potential load shedding or shaving opportunities.
+* Engineer should configure and verify the Power Factor telemetry for the Electrical-Utility-Building in the Qube Modbus or OPC UA gateway.
+* Engineer should consider installing capacitor banks if the Power Factor telemetry, once available, indicates significant reactive power losses.</div>
+      </div>
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-Boiler</div>
+        <div class="insight-content">Insight: The Electrical-Boiler shows a high peak demand relative to its average consumption, and telemetry for Power Factor is missing, indicating potential for optimization and the need for proper sensor configuration.
+Suggestions:
+* Engineer should investigate the cause of the high peak demand to determine if load sequencing or peak shaving strategies can be implemented for the Electrical-Boiler.
+* Engineer should ensure that Power Factor telemetry for the Electrical-Boiler is configured in the Qube Modbus or OPC UA gateway for further analysis.
+* Engineer should review historical consumption data to understand the operational patterns of the Electrical-Boiler and identify opportunities for energy efficiency.</div>
+      </div>
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-Water-Treatement-Plant</div>
+        <div class="insight-content">Insight: The Electrical-Water-Treatement-Plant is critically underperforming with a dangerously low Power Factor of 0.44, indicating significant reactive power loss and potential equipment strain.
+Suggestions:
+Engineer should investigate the cause of the critically low power factor at the Electrical-Water-Treatement-Plant immediately.
+Engineer should prioritize the installation of capacitor banks for the Electrical-Water-Treatement-Plant to correct the power factor.
+Engineer should ensure telemetry for Power Factor for the Electrical-Water-Treatement-Plant is correctly configured in the Qube Modbus or OPC UA gateway.</div>
+      </div>
+    
+      <div class="device-card">
+        <div class="device-header">Asset ID: Electrical-Refrigeration</div>
+        <div class="insight-content">Insight: The Electrical-Refrigeration system is wasting Reactive Power due to a minimum power factor below the 0.90 industrial standard.
+
+Suggestions:
+* Engineer should investigate the cause of the low power factor and consider installing capacitor banks.
+* Engineer should monitor peak demand relative to average consumption for potential load management opportunities.
+* Engineer should ensure continuous telemetry for all relevant Qube measurements for the Electrical-Refrigeration device.</div>
+      </div>
+    
+    
+    <footer>
+      Report generated via Qube AI Reasoning Engine | Based on TimescaleDB Telemetry
+    </footer>
+  </div>
+
+</body></html>
