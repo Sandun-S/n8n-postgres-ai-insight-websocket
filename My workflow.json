@@ -1,0 +1,878 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    device,\n    MAX(value) FILTER (WHERE LOWER(resource_name) LIKE '%demand%') as peak_kva,\n    AVG(value) FILTER (WHERE LOWER(resource_name) LIKE '%energy%') as avg_kwh,\n    MIN(value) FILTER (WHERE LOWER(resource_name) LIKE '%factor%') as min_pf\nFROM telemetry\n-- WHERE time > NOW() - INTERVAL '24 hours'  '7 days'\n-- Change 24 hours to 7 days to capture the April 20 data\nWHERE time > NOW() - INTERVAL '7 days'\nGROUP BY device;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        48,
+        -112
+      ],
+      "id": "2175db1a-2c8f-45b2-bbc1-99f739f3a66d",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "xxLRgAGOC0ezwL6Q",
+          "name": "Postgres account 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze industrial telemetry for Device: {{ $json.device }}\n\n- Peak Demand: {{ $json.peak_kva ? $json.peak_kva + ' kVA' : 'NULL' }}\n- Average Consumption: {{ $json.avg_kwh ? $json.avg_kwh + ' kWh' : 'NULL' }}\n- Minimum Power Factor: {{ $json.min_pf ? $json.min_pf : 'NULL' }}\n\nProvide:\nInsight: \nSuggestions:",
+        "options": {
+          "systemMessage": "Persona: You are the Qube Industrial Optimizer. You analyze telemetry from a system using the Qube measurements table architecture.\n\nLogic Rules:\n\nPower Factor (PF): Industrial standard is > 0.90. If min_pf < 0.90, the site is wasting \"Reactive Power.\" For values below 0.50 (e.g., Electrical-WWTP at 0.44), treat this as a critical failure requiring immediate capacitor bank installation.\n\nPeak Demand: If peak_kva is significantly higher than avg_kwh, focus on Peak Shaving and Load Sequencing.\n\nMissing Data: If any value is null, specifically state that telemetry for that metric (like Power Factor for the Utility Building) needs to be configured in the Qube Modbus or OPC UA gateway.\n\nOutput Instructions:\n\nOutput exactly one line for the Insight.\n\nOutput exactly 3 bullet points for Suggestions starting with \"Engineer should...\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        240,
+        -112
+      ],
+      "id": "e279f0b9-bb7b-4fe9-8f68-8597b56e0906",
+      "name": "AI Agent",
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        112,
+        96
+      ],
+      "id": "e96fac55-d74f-4e40-b638-20010f82500b",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "V72VbR9wp09Yv1tC",
+          "name": "OpenRouter account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Qube Industrial AI Report</title>\n  <style>\n    body { background-color: #f4f7f6; font-family: sans-serif; padding: 40px; }\n    .container { background-color: #ffffff; padding: 24px; border-radius: 12px; max-width: 850px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }\n    h1 { color: #ff6d5a; text-align: center; border-bottom: 3px solid #15171c; padding-bottom: 10px; }\n    .device-card { border-left: 8px solid #ff6d5a; background: #f9f9f9; padding: 20px; margin-bottom: 20px; border-radius: 4px; }\n    .device-header { font-weight: bold; color: #15171c; font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid #ddd; }\n    .insight-content { white-space: pre-wrap; font-size: 15px; color: #2c3e50; line-height: 1.6; }\n    footer { text-align: center; margin-top: 40px; font-size: 12px; color: #909399; font-style: italic; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <h1>Qube System Optimization Report</h1>\n    <p style=\"text-align: center; color: #666;\">Data Analysis: {{ $now.format('yyyy-MM-dd HH:mm') }}</p>\n    \n    {{ $json.items.map(item => `\n      <div class=\"device-card\">\n        <div class=\"device-header\">Asset ID: ${item.device}</div>\n        <div class=\"insight-content\">${item.output}</div>\n      </div>\n    `).join('') }}\n    \n    <footer>\n      Report generated via Qube AI Reasoning Engine | Based on TimescaleDB Telemetry\n    </footer>\n  </div>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        -112
+      ],
+      "id": "4edba85c-d046-458d-868c-c58af85350be",
+      "name": "HTML",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "path": "energy-insights",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -128,
+        -112
+      ],
+      "id": "9adc3e2e-76cd-49d4-99f7-8bba7323750a",
+      "name": "Webhook",
+      "webhookId": "8ddbc2e5-ac2b-444a-8112-908e1f551591",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "items",
+        "include": "specifiedFields",
+        "fieldsToInclude": "device, output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -112
+      ],
+      "id": "e0e78615-4b32-4c00-b23f-cde4c31e2361",
+      "name": "Aggregate",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1104,
+        -112
+      ],
+      "id": "a8aecea8-7166-4cd1-88f6-1b1e229e919e",
+      "name": "Respond to Webhook",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        96
+      ],
+      "id": "b4f1df60-8748-42b6-8c3d-a232dea1dc40",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DjPmmZGbrz5swzF2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c578219e-410a-4c4f-babf-f6da5631e4cc",
+              "name": "device",
+              "value": "={{ $node[\"Execute a SQL query\"].json[\"device\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "f946d0f8-8751-41b3-89cd-276a103295ab",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        -112
+      ],
+      "id": "4c2980c2-ef60-4892-be61-500492eed565",
+      "name": "Edit Fields",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        32,
+        432
+      ],
+      "id": "0196cd85-cf46-4f52-b996-8d6ef5c94e78",
+      "name": "When clicking ‘Execute workflow’",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/qube_factory_manual.txt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        432
+      ],
+      "id": "0d64f061-20e0-43f5-bf3d-a0584a3cc281",
+      "name": "Read/Write Files from Disk",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        592
+      ],
+      "id": "91e75ff0-e578-4242-9172-93dfa3dba97e",
+      "name": "Default Data Loader",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "qube_technical_manuals",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        432
+      ],
+      "id": "4d60a57d-3f2e-44f8-960e-fb16b47ac1c0",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "5spXfwl0NMrQF7cI",
+          "name": "Postgres account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        512,
+        608
+      ],
+      "id": "c136daa6-050c-4d59-bd57-f586d26f356b",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DjPmmZGbrz5swzF2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to find technical specifications and maintenance steps for industrial equipment like WWTP pumps or Boilers.\nAlways check this tool before answering equipment questions.",
+        "tableName": "qube_technical_manuals",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        96
+      ],
+      "id": "822f310f-9592-43a3-bb6e-2f128d266a94",
+      "name": "Postgres PGVector Store1",
+      "credentials": {
+        "postgres": {
+          "id": "5spXfwl0NMrQF7cI",
+          "name": "Postgres account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        432,
+        240
+      ],
+      "id": "af250af5-b2b3-482c-9fbf-b71eacff6c15",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DjPmmZGbrz5swzF2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  device,\n  reading,\n  label,\n  MAX(value) AS max_value,\n  AVG(value) AS avg_value,\n  MIN(value) AS min_value,\n  COUNT(*)   AS sample_count\nFROM qube_schema.ccs_measurements2\nWHERE\n  device = '{{ $json.query.device }}'\n  AND reading = ANY(string_to_array('{{ $json.query.readings }}', ','))\n  AND logged_time BETWEEN\n    '{{ $json.query.from }}'::timestamptz\n    AND '{{ $json.query.to }}'::timestamptz\nGROUP BY device, reading, label\nORDER BY reading;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -144,
+        1056
+      ],
+      "id": "99a08a82-bb4b-4a77-9ad4-e64480b78850",
+      "name": "Execute a SQL query1",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "xxLRgAGOC0ezwL6Q",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze industrial telemetry for Device: {{ $json.device }} ({{ $json.label }})\nReading: {{ $json.reading }}\n\n- Max: {{ $json.max_value }}\n- Avg: {{ $json.avg_value }}\n- Min: {{ $json.min_value }}\n- Samples: {{ $json.sample_count }}\n\nProvide:\nInsight:\nSuggestions:",
+        "options": {
+          "systemMessage": "Persona: You are the Qube Industrial Optimizer. You analyze telemetry from a system using the Qube measurements table architecture.\n\nLogic Rules:\n\nPower Factor (PF): Industrial standard is > 0.90. If min_pf < 0.90, the site is wasting \"Reactive Power.\" For values below 0.50 (e.g., Electrical-WWTP at 0.44), treat this as a critical failure requiring immediate capacitor bank installation.\n\nPeak Demand: If peak_kva is significantly higher than avg_kwh, focus on Peak Shaving and Load Sequencing.\n\nMissing Data: If any value is null, specifically state that telemetry for that metric (like Power Factor for the Utility Building) needs to be configured in the Qube Modbus or OPC UA gateway.\n\nOutput Instructions:\n\nOutput exactly one line for the Insight.\n\nOutput exactly 3 bullet points for Suggestions starting with \"Engineer should...\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        1056
+      ],
+      "id": "205311b1-1256-400a-939f-0474874e7cec",
+      "name": "AI Agent1",
+      "executeOnce": false,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1264
+      ],
+      "id": "1808b1ec-7013-4872-932d-41cb6fa4b3ad",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "V72VbR9wp09Yv1tC",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Qube Industrial AI Report</title>\n  <style>\n    body { background-color: #f4f7f6; font-family: sans-serif; padding: 40px; }\n    .container { background-color: #ffffff; padding: 24px; border-radius: 12px; max-width: 850px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }\n    h1 { color: #ff6d5a; text-align: center; border-bottom: 3px solid #15171c; padding-bottom: 10px; }\n    .device-card { border-left: 8px solid #ff6d5a; background: #f9f9f9; padding: 20px; margin-bottom: 20px; border-radius: 4px; }\n    .device-header { font-weight: bold; color: #15171c; font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid #ddd; }\n    .insight-content { white-space: pre-wrap; font-size: 15px; color: #2c3e50; line-height: 1.6; }\n    footer { text-align: center; margin-top: 40px; font-size: 12px; color: #909399; font-style: italic; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <h1>Qube System Optimization Report</h1>\n    <p style=\"text-align: center; color: #666;\">Data Analysis: {{ $now.format('yyyy-MM-dd HH:mm') }}</p>\n    \n    {{ $json.items.map(item => `\n      <div class=\"device-card\">\n        <div class=\"device-header\">Asset ID: ${item.device}</div>\n        <div class=\"insight-content\">${item.output}</div>\n      </div>\n    `).join('') }}\n    \n    <footer>\n      Report generated via Qube AI Reasoning Engine | Based on TimescaleDB Telemetry\n    </footer>\n  </div>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        1056
+      ],
+      "id": "7b0931d6-de68-49d3-8262-ff06e49186b0",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "path": "energy-insights",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        1056
+      ],
+      "id": "8c8d84dc-3895-4202-b278-67b7c4733a3c",
+      "name": "Webhook1",
+      "webhookId": "8ddbc2e5-ac2b-444a-8112-908e1f551591"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "items",
+        "include": "specifiedFields",
+        "fieldsToInclude": "device, output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        528,
+        1056
+      ],
+      "id": "e010869a-0e91-4f13-8a56-74371c09f70c",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        912,
+        1056
+      ],
+      "id": "8cfe6a4f-4502-4c4f-bb8f-b6a03571e159",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        1264
+      ],
+      "id": "df75ca38-f9eb-488b-9001-7f850e530048",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DjPmmZGbrz5swzF2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c578219e-410a-4c4f-babf-f6da5631e4cc",
+              "name": "device",
+              "value": "={{ $node[\"Execute a SQL query1\"].json[\"device\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "f946d0f8-8751-41b3-89cd-276a103295ab",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        1056
+      ],
+      "id": "c3b08dab-5b82-4b57-9517-6769a1f763c8",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to find technical specifications and maintenance steps for industrial equipment like WWTP pumps or Boilers.\nAlways check this tool before answering equipment questions.",
+        "tableName": "qube_technical_manuals",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        1264
+      ],
+      "id": "483c6e27-ed60-476c-b847-c09e1a114068",
+      "name": "Postgres PGVector Store2",
+      "credentials": {
+        "postgres": {
+          "id": "5spXfwl0NMrQF7cI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1408
+      ],
+      "id": "6decdc58-b84e-4c92-aebd-4dceb6a396f8",
+      "name": "Embeddings Google Gemini2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DjPmmZGbrz5swzF2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "qube-ui",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        880
+      ],
+      "id": "6b7463d4-acce-4c5f-96fe-e54813009fcd",
+      "name": "Webhook2",
+      "webhookId": "8ddbc2e5-ac2b-444a-8112-908e1f551591"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\"/>\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>\n  <title>Qube Industrial Insights</title>\n  <style>\n    *{box-sizing:border-box;margin:0;padding:0}\n    body{background:#f0f2f0;font-family:sans-serif;min-height:100vh;padding:24px}\n    .page{max-width:700px;margin:auto}\n    .topbar{display:flex;align-items:center;gap:12px;margin-bottom:20px}\n    .topbar h1{color:#ff6d5a;font-size:1.3em;flex:1}\n    .topbar span{font-size:12px;color:#aaa}\n    .card{background:#fff;border-radius:14px;padding:28px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}\n    .sec-title{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}\n    /* Device selector */\n    .site-group{margin-bottom:10px}\n    .site-label{font-size:11px;font-weight:700;color:#ff6d5a;text-transform:uppercase;letter-spacing:.05em;padding:4px 0;margin-bottom:6px;border-bottom:1px solid #f5e8e6}\n    .device-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}\n    .dev-btn{padding:8px 10px;border:1px solid #e5e5e5;border-radius:8px;font-size:12px;cursor:pointer;background:#fafafa;color:#444;text-align:left;transition:all .12s;line-height:1.35}\n    .dev-btn .dev-id{font-weight:700;color:#222;display:block;font-size:12px}\n    .dev-btn .dev-label{color:#999;font-size:11px}\n    .dev-btn.active{border-color:#ff6d5a;background:#fff4f2;color:#c0421a}\n    .dev-btn.active .dev-id{color:#c0421a}\n    /* Reading groups */\n    .rg-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}\n    .rg-btn{padding:5px 12px;border:1px solid #ddd;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;color:#555;transition:all .1s;font-weight:600}\n    .rg-btn:hover{background:#f4f7f6}\n    .rg-btn.sel{background:#15171c;color:#fff;border-color:#15171c}\n    .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}\n    .chip{display:flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid #ddd;border-radius:20px;font-size:12px;cursor:pointer;color:#555;transition:all .12s;user-select:none}\n    .chip input{width:12px;height:12px;accent-color:#ff6d5a;margin:0}\n    .chip:has(input:checked){border-color:#ff6d5a;background:#fff4f2;color:#c0421a;font-weight:600}\n    /* Time */\n    .presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}\n    .preset{padding:5px 12px;border:1px solid #ddd;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;color:#555;transition:all .1s}\n    .preset.active,.preset:hover{background:#fff4f2;border-color:#ff6d5a;color:#c0421a}\n    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}\n    input[type=datetime-local]{width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#222;outline:none;background:#fff;transition:border .15s}\n    input[type=datetime-local]:focus{border-color:#ff6d5a}\n    /* Run button */\n    .run{width:100%;padding:14px;background:#ff6d5a;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:.02em}\n    .run:hover{background:#e0503d}\n    .run:disabled{background:#ddd;color:#aaa;cursor:not-allowed}\n    /* Results */\n    #result{display:none;margin-top:0}\n    .r-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}\n    .device-card{border-left:5px solid #ff6d5a;background:#fafafa;padding:16px 18px;border-radius:0 8px 8px 0;margin-bottom:12px}\n    .device-title{font-weight:700;color:#15171c;font-size:.95em;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}\n    .badge{background:#fff0ed;color:#c0421a;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}\n    .insight{white-space:pre-wrap;font-size:14px;color:#2c3e50;line-height:1.7}\n    .loader{text-align:center;padding:32px;color:#aaa;font-size:14px}\n    .spinner{display:inline-block;width:16px;height:16px;border:2px solid #eee;border-top-color:#ff6d5a;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}\n    @keyframes spin{to{transform:rotate(360deg)}}\n    .err{background:#fff0f0;border:1px solid #fcc;border-radius:8px;padding:14px;color:#c00;font-size:13px}\n    footer{text-align:center;font-size:11px;color:#ccc;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0}\n    .sel-summary{font-size:12px;color:#888;margin-top:8px;min-height:18px}\n    .sel-summary span{color:#ff6d5a;font-weight:700}\n  </style>\n</head>\n<body>\n<div class=\"page\">\n\n  <div class=\"topbar\">\n    <h1>&#9889; Qube Industrial Insights</h1>\n    <span id=\"clock\"></span>\n  </div>\n\n  <!-- STEP 1: Device -->\n  <div class=\"card\">\n    <div class=\"sec-title\">1 — Select Device</div>\n\n    <div class=\"site-group\">\n      <div class=\"site-label\">SDF — Power Room</div>\n      <div class=\"device-grid\">\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_TR1')\"><span class=\"dev-id\">TR1</span><span class=\"dev-label\">Main Transformer 1 · PM1</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_TR2')\"><span class=\"dev-id\">TR2</span><span class=\"dev-label\">Main Transformer 2 · PM2</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_PLANT2')\"><span class=\"dev-id\">PLANT2</span><span class=\"dev-label\">Plant 2 · PM11</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_PLANT3')\"><span class=\"dev-id\">PLANT3</span><span class=\"dev-label\">Plant 3 · PM12</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_PLANT4')\"><span class=\"dev-id\">PLANT4</span><span class=\"dev-label\">Plant 4 · PM8</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_GEA_CHILLER')\"><span class=\"dev-id\">GEA CHILLER</span><span class=\"dev-label\">Chiller · PM7</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_90KW_COMP')\"><span class=\"dev-id\">90KW COMP</span><span class=\"dev-label\">Compressor · PM10</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_BM_PLANT')\"><span class=\"dev-id\">BM PLANT</span><span class=\"dev-label\">BM Plant · PM9</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_MY_COM')\"><span class=\"dev-id\">MY COM</span><span class=\"dev-label\">MY Compressor · PM13</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_LP_COM')\"><span class=\"dev-id\">LP COM</span><span class=\"dev-label\">LP Compressor · PM14</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_SYRUP_ROOM')\"><span class=\"dev-id\">SYRUP ROOM</span><span class=\"dev-label\">Syrup Room · PM15</span></button>\n      </div>\n    </div>\n\n    <div class=\"site-group\">\n      <div class=\"site-label\">SDF — Generators</div>\n      <div class=\"device-grid\">\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_CAT_GEN')\"><span class=\"dev-id\">CAT GEN</span><span class=\"dev-label\">CAT Generator · PM4</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_PowerRoom_CUMMINS_GEN')\"><span class=\"dev-id\">CUMMINS GEN</span><span class=\"dev-label\">Cummins Gen · PM5</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_NewLand_TR3')\"><span class=\"dev-id\">NEWLAND TR3</span><span class=\"dev-label\">Transformer 3 · PM1</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_SDF_NewLand_KIR_Gen')\"><span class=\"dev-id\">KIR GEN</span><span class=\"dev-label\">Kirloskar Gen · PM2</span></button>\n      </div>\n    </div>\n\n    <div class=\"site-group\">\n      <div class=\"site-label\">ICF — Power Room</div>\n      <div class=\"device-grid\">\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_PowerRoom_A_Panel')\"><span class=\"dev-id\">A PANEL</span><span class=\"dev-label\">Panel A · PM1</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_PowerRoom_BC_Panel')\"><span class=\"dev-id\">BC PANEL</span><span class=\"dev-label\">Panel BC · PM4</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_PowerRoom_D_Panel')\"><span class=\"dev-id\">D PANEL</span><span class=\"dev-label\">Panel D · PM5</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_PowerRoom_HT_Indoor')\"><span class=\"dev-id\">HT INDOOR</span><span class=\"dev-label\">HT Indoor · PM2</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_PowerRoom_HT_Outdoor')\"><span class=\"dev-id\">HT OUTDOOR</span><span class=\"dev-label\">HT Outdoor · PM3</span></button>\n      </div>\n    </div>\n\n    <div class=\"site-group\">\n      <div class=\"site-label\">ICF — Cold Room &amp; Generators</div>\n      <div class=\"device-grid\">\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_ColdRoom_ETP')\"><span class=\"dev-id\">COLD ETP</span><span class=\"dev-label\">ETP · PM1</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_ColdRoom_NCR_CH1')\"><span class=\"dev-id\">NCR CH1</span><span class=\"dev-label\">NCR Channel 1 · PM2</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_ColdRoom_NCR_CH2')\"><span class=\"dev-id\">NCR CH2</span><span class=\"dev-label\">NCR Channel 2 · PM3</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_ColdRoom_NCR_CH3')\"><span class=\"dev-id\">NCR CH3</span><span class=\"dev-label\">NCR Channel 3 · PM4</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_GENERATOR_CAT')\"><span class=\"dev-id\">ICF CAT GEN</span><span class=\"dev-label\">CAT Generator · PM2</span></button>\n        <button class=\"dev-btn\" onclick=\"selectDevice(this,'CCS_ICF_GENERATOR_CUMMINS')\"><span class=\"dev-id\">ICF CUMMINS</span><span class=\"dev-label\">Cummins Gen · PM1</span></button>\n      </div>\n    </div>\n\n    <div class=\"sel-summary\" id=\"devSummary\">No device selected</div>\n  </div>\n\n  <!-- STEP 2: Readings -->\n  <div class=\"card\">\n    <div class=\"sec-title\">2 — Select Readings</div>\n\n    <div class=\"rg-row\">\n      <button class=\"rg-btn\" onclick=\"applyGroup('energy')\">⚡ Energy</button>\n      <button class=\"rg-btn\" onclick=\"applyGroup('power')\">🔌 Power</button>\n      <button class=\"rg-btn\" onclick=\"applyGroup('voltage')\">📊 Voltage</button>\n      <button class=\"rg-btn\" onclick=\"applyGroup('current')\">〰 Current</button>\n      <button class=\"rg-btn\" onclick=\"applyGroup('all')\">✦ All</button>\n      <button class=\"rg-btn\" onclick=\"applyGroup('none')\">✕ Clear</button>\n    </div>\n\n    <div class=\"chips\" id=\"readingChips\">\n      <!-- populated by selectDevice() -->\n      <span style=\"font-size:13px;color:#bbb\">Select a device first</span>\n    </div>\n  </div>\n\n  <!-- STEP 3: Time -->\n  <div class=\"card\">\n    <div class=\"sec-title\">3 — Time Range</div>\n    <div class=\"presets\">\n      <button class=\"preset\" onclick=\"setPreset(1,'h',this)\">1h</button>\n      <button class=\"preset\" onclick=\"setPreset(6,'h',this)\">6h</button>\n      <button class=\"preset active\" onclick=\"setPreset(24,'h',this)\">24h</button>\n      <button class=\"preset\" onclick=\"setPreset(7,'d',this)\">7d</button>\n      <button class=\"preset\" onclick=\"setPreset(30,'d',this)\">30d</button>\n    </div>\n    <div class=\"grid2\">\n      <div>\n        <div style=\"font-size:11px;color:#999;margin-bottom:4px\">FROM</div>\n        <input type=\"datetime-local\" id=\"from\"/>\n      </div>\n      <div>\n        <div style=\"font-size:11px;color:#999;margin-bottom:4px\">TO</div>\n        <input type=\"datetime-local\" id=\"to\"/>\n      </div>\n    </div>\n  </div>\n\n  <!-- RUN -->\n  <button class=\"run\" id=\"runBtn\" onclick=\"runInsights()\">Run AI Analysis</button>\n\n  <!-- RESULTS -->\n  <div id=\"result\" style=\"margin-top:16px\">\n    <div class=\"card\">\n      <div class=\"r-label\">Analysis Results</div>\n      <div id=\"cards\"></div>\n      <footer>Qube AI Reasoning Engine &middot; TimescaleDB &middot; <span id=\"ts\"></span></footer>\n    </div>\n  </div>\n  <div id=\"errBox\" class=\"err\" style=\"display:none;margin-top:16px\"></div>\n\n</div>\n\n<script>\n  // All devices and their available readings from DB\n  const DEVICE_READINGS = {\n    'CCS_SDF_PowerRoom_TR1':        ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','PF','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_SDF_PowerRoom_TR2':        ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','PF','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_SDF_PowerRoom_CAT_GEN':    ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_SDF_PowerRoom_CUMMINS_GEN':['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_SDF_PowerRoom_PLANT2':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_PLANT3':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_PLANT4':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_GEA_CHILLER':['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_90KW_COMP':  ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_BM_PLANT':   ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_MY_COM':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_LP_COM':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_PowerRoom_SYRUP_ROOM': ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_SDF_NewLand_TR3':          ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','PF','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_SDF_NewLand_KIR_Gen':      ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_ICF_PowerRoom_A_Panel':    ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','PF','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_ICF_PowerRoom_BC_Panel':   ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','PF','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_ICF_PowerRoom_D_Panel':    ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','PF','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_ICF_PowerRoom_HT_Indoor':  ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_ICF_PowerRoom_HT_Outdoor': ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_ICF_ColdRoom_ETP':         ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_ICF_ColdRoom_NCR_CH1':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_ICF_ColdRoom_NCR_CH2':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_ICF_ColdRoom_NCR_CH3':     ['ACT_POW','APP_POW','C_AVG','ENERGY','PF','V_AVG'],\n    'CCS_ICF_GENERATOR_CAT':        ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','V_AVG','V_LL1','V_LL2','V_LL3'],\n    'CCS_ICF_GENERATOR_CUMMINS':    ['ACT_POW','APP_POW','C_AVG','C_IL1','C_IL2','C_IL3','ENERGY','V_AVG','V_LL1','V_LL2','V_LL3']\n  };\n\n  // Reading groups\n  const GROUPS = {\n    energy:  ['ENERGY','ACT_POW','APP_POW'],\n    power:   ['ACT_POW','APP_POW','PF'],\n    voltage: ['V_AVG','V_LL1','V_LL2','V_LL3'],\n    current: ['C_AVG','C_IL1','C_IL2','C_IL3'],\n    all:     null,\n    none:    []\n  };\n\n  // Reading labels\n  const R_LABELS = {\n    ACT_POW:'Active Power', APP_POW:'Apparent Power', ENERGY:'Energy',\n    PF:'Power Factor', V_AVG:'Voltage Avg', V_LL1:'Voltage L1',\n    V_LL2:'Voltage L2', V_LL3:'Voltage L3', C_AVG:'Current Avg',\n    C_IL1:'Current L1', C_IL2:'Current L2', C_IL3:'Current L3'\n  };\n\n  let selectedDevice = null;\n\n  function pad(n){return String(n).padStart(2,'0')}\n  function toLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}\n\n  function setPreset(n,u,btn){\n    document.querySelectorAll('.preset').forEach(b=>b.classList.remove('active'));\n    if(btn)btn.classList.add('active');\n    const now=new Date(),from=new Date(now);\n    u==='h'?from.setHours(from.getHours()-n):from.setDate(from.getDate()-n);\n    document.getElementById('from').value=toLocal(from);\n    document.getElementById('to').value=toLocal(now);\n  }\n  setPreset(24,'h',null);\n\n  function selectDevice(btn, device){\n    document.querySelectorAll('.dev-btn').forEach(b=>b.classList.remove('active'));\n    btn.classList.add('active');\n    selectedDevice = device;\n    document.getElementById('devSummary').innerHTML = 'Selected: <span>'+device+'</span>';\n    renderChips(device);\n  }\n\n  function renderChips(device){\n    const readings = DEVICE_READINGS[device] || [];\n    const container = document.getElementById('readingChips');\n    // default: check energy+power group\n    const defaults = ['ACT_POW','APP_POW','ENERGY','PF'];\n    container.innerHTML = readings.map(r=>\n      `<label class=\"chip\"><input type=\"checkbox\" value=\"${r}\" ${defaults.includes(r)?'checked':''}> <span title=\"${R_LABELS[r]||r}\">${r}</span></label>`\n    ).join('');\n  }\n\n  function applyGroup(group){\n    document.querySelectorAll('.rg-btn').forEach(b=>b.classList.remove('sel'));\n    event.target.classList.add('sel');\n    const target = GROUPS[group];\n    document.querySelectorAll('#readingChips input').forEach(cb=>{\n      if(target === null) cb.checked = true;\n      else cb.checked = target.includes(cb.value);\n    });\n  }\n\n  async function runInsights(){\n    if(!selectedDevice){alert('Select a device first');return}\n    const checked = [...document.querySelectorAll('#readingChips input:checked')].map(i=>i.value);\n    if(!checked.length){alert('Select at least one reading');return}\n    const from = document.getElementById('from').value;\n    const to   = document.getElementById('to').value;\n    if(!from||!to){alert('Set a time range');return}\n\n    const btn = document.getElementById('runBtn');\n    btn.disabled=true; btn.textContent='Running…';\n    document.getElementById('errBox').style.display='none';\n    document.getElementById('cards').innerHTML='<div class=\"loader\"><span class=\"spinner\"></span>Fetching telemetry and running AI analysis…</div>';\n    document.getElementById('result').style.display='block';\n    document.getElementById('result').scrollIntoView({behavior:'smooth'});\n\n    try{\n      const params = new URLSearchParams({\n        device:   selectedDevice,\n        readings: checked.join(','),\n        from:     new Date(from).toISOString(),\n        to:       new Date(to).toISOString()\n      });\n      const resp = await fetch(window.location.origin+'/webhook/energy-insights?'+params.toString());\n      if(!resp.ok) throw new Error('Webhook returned '+resp.status);\n      const html = await resp.text();\n      const doc  = new DOMParser().parseFromString(html,'text/html');\n      const incoming = doc.querySelectorAll('.device-card');\n      if(incoming.length){\n        document.getElementById('cards').innerHTML='';\n        incoming.forEach(c=>document.getElementById('cards').appendChild(document.importNode(c,true)));\n      } else {\n        document.getElementById('cards').innerHTML='<div class=\"loader\">No data found for that device / time range.</div>';\n      }\n      document.getElementById('ts').textContent = new Date().toLocaleString();\n    } catch(e){\n      document.getElementById('result').style.display='none';\n      document.getElementById('errBox').style.display='block';\n      document.getElementById('errBox').textContent='Error: '+e.message;\n    } finally{\n      btn.disabled=false; btn.textContent='Run AI Analysis';\n    }\n  }\n\n  // Live clock\n  setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString()},1000);\n</script>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -144,
+        880
+      ],
+      "id": "46eee1f2-9932-44cb-bff2-e9891c10c60e",
+      "name": "HTML2"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        16,
+        880
+      ],
+      "id": "98db4337-f9a9-4a03-9a08-98c83795680a",
+      "name": "Respond to Webhook2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "HTML2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e6cfc5c8-e0c0-48c4-84d9-54ed97195364",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ed51454b024aa3b82b7216a64d53096afcabf11be3412a9abd78ceb669071cef"
+  },
+  "id": "xwF6OaI2b0YrMxFI",
+  "tags": []
+}

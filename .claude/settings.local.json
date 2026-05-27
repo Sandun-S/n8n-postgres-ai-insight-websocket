@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec *)",
+      "Bash(docker cp *)",
+      "Bash(sqlite3 /tmp/n8n_database.sqlite \"SELECT * FROM user;\")",
+      "Bash(python3 *)"
+    ]
+  }
+}

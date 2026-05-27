@@ -107,6 +107,10 @@ If you see "Skipping initialization" in the logs, it means the database volume a
 ```bash
 docker-compose down -v
 docker-compose up -d
+n8n username : sanduns@mitesp.com
+n8n password : 1qaz2wsx@WSX
+
+http://localhost:5678/webhook-test/qube-ui
 ```
 
 -----

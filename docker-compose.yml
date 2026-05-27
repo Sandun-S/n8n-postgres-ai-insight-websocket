@@ -23,6 +23,9 @@ services:
       - N8N_PROTOCOL=http
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
       - N8N_BLOCK_FS_WRITE_ACCESS=false
+      # - N8N_BASIC_AUTH_ACTIVE=true
+      # - N8N_BASIC_AUTH_USER=sanduns@mitesp.com
+      # - N8N_BASIC_AUTH_PASSWORD=qube_admin_123
     volumes:
       - n8n_data:/home/node/.n8n
       # - ./knowledge_base:/home/node/knowledge_base:ro
